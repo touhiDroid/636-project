@@ -89,13 +89,13 @@ if __name__ == '__main__':
     start_time = time.time()
     # define model
     model = LogisticReg([
-        ConvLayer(input_maps=1, output_maps=32, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
-        ConvLayer(input_maps=32, output_maps=64, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
+        ConvLayer(input_maps=1, output_maps=90, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
+        ConvLayer(input_maps=90, output_maps=180, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
         # 1st layer output number = [ (W−F+2P)/S+1 ] / 2 = [(90-5+0)/1 + 1]/2 = 86/2 = 43
         # 2nd layer output number = [ (W−F+2P)/S+1 ] / 2 = [(43-5+0)/1 + 1]/2 = 39/2 = 19.5
-        ReshapeLayer(output_shape=[-1, 19 * 19 * 64]),  # TODO: Ensure x=19 in (x * x * 64)
-        DenseLayer(19 * 19 * 64, 2048, tf.nn.relu),
-        DenseLayer(2048, 12)
+        ReshapeLayer(output_shape=[-1, 19 * 19 * 180]),  # Ensure x=19 in (x * x * 180)
+        DenseLayer(19 * 19 * 180, 12 * 1024, tf.nn.relu),
+        DenseLayer(12 * 1024, 12)
     ])
     weights = [layer.w for layer in model.layers if hasattr(layer, 'w')]
 
@@ -117,7 +117,6 @@ if __name__ == '__main__':
             batch_y = _y[c: c + batch_size]
             c += batch_size
 
-            # TODO: Need to reshape to [W, 90, 90, 1] ??
             batch_X = np.reshape(batch_X, [-1, 90, 90, 1])
 
             # Call the optimizer to perform one step of the training
@@ -128,8 +127,9 @@ if __name__ == '__main__':
             print("{:.2f}".format(100 * c / total_images), '% progress ==> Train Accuracy=', train_accuracy,
                   ',\tMean Loss=', mean_loss)
 
-        print('Complete Iteration Time ==> ', datetime.timedelta(seconds=time.time() - st))
+        print('Training Time ==> ', datetime.timedelta(seconds=time.time() - st))
 
+        test_accuracy = 0
         if step % summary_freq == 0:
             # obtain train accuracy
             train_accuracy = train_accuracy / summary_freq
@@ -145,9 +145,12 @@ if __name__ == '__main__':
                 batch_X_test = np.reshape(batch_X_test, [-1, 90, 90, 1])
                 pred = model(batch_X_test)
                 test_accuracy += accuracy(pred, batch_y_test)
+                # TODO: Save predicted & original labels to generate confusion-matrix later
             test_accuracy = test_accuracy / n_test_log
             # ------------------------------- #
             print(step + 1, '# train:', train_accuracy, ' | test:', test_accuracy, ' | loss:', mean_loss / summary_freq)
             mean_loss = 0
             train_accuracy = 0
+        print(step + 1, '# train:', train_accuracy, ' | test:', test_accuracy, ' | loss:', mean_loss / summary_freq)
+        print(step + 1, '# Complete Iteration Time ==> ', datetime.timedelta(seconds=time.time() - st))
     print('Program Runtime ==> ', datetime.timedelta(seconds=time.time() - start_time))
