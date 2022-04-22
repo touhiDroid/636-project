@@ -1,9 +1,7 @@
 from types import SimpleNamespace
 
-# import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
 
 num_steps = 10000  # play with different values
 summary_freq = 200
@@ -104,15 +102,15 @@ def load_mnist():
 class ConvLayer(object):
     def __init__(self, input_maps, output_maps, filter_size,
                  pool_size, afunc=None):
-        '''
-  Convolution layer with VALID padding and pooling layer.
+        """'''
+          Convolution layer with VALID padding and pooling layer.
 
-  input_maps: number of input maps.
-  output_maps: number of output maps.
-  filter_size: list/tuple with the size of the kernel filter.
-  pool_size: list/tuple with the size of the pool filter.
-  afunc: activation function.
-  '''
+          input_maps: number of input maps.
+          output_maps: number of output maps.
+          filter_size: list/tuple with the size of the kernel filter.
+          pool_size: list/tuple with the size of the pool filter.
+          afunc: activation function.
+        '''"""
         self.w = tf.Variable(tf.random.truncated_normal(
             shape=[filter_size[0], filter_size[1],
                    input_maps, output_maps],
@@ -169,7 +167,7 @@ def train_step(labels, inputs):
     with tf.GradientTape() as tape:
         logits = model(inputs, logits=True)
         loss = loss_fn(logits, labels, weights)
-    # apply grandients to optimizer
+    # apply gradients to optimizer
     gradients = tape.gradient(loss, model.trainable_variables())
     optimizer.apply_gradients(zip(gradients, model.trainable_variables()))
     return loss.numpy(), model(inputs).numpy()
@@ -189,16 +187,11 @@ if __name__ == '__main__':
         ConvLayer(input_maps=1, output_maps=32, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
         ConvLayer(input_maps=32, output_maps=64, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
         ReshapeLayer(output_shape=[-1, 4 * 4 * 64]),  # HINT: where does 4*4*64 comes from?
-        # use the architecture given in the
-        # assignment to figure this out !!!
-        # Answer: The width of the output of
-        # first conv2d is calculated using (W−F+2P)/S+1
-        # (28-5+2*0)/1+1= 24 and then the output of
-        # maxpool is 24/2 = 12, then the output of second
-        # conv2d is (12-5+2*0)/1+1=8, then the output of
-        # maxpool is 8/2 = 4 and the same happens for the
-        # height so the outcome of second ConvLayer
-        # is W*H*output_channel = 4*4*64
+        # use the architecture given in the assignment to figure this out !!!
+        # Answer: The width of the output of the first conv2d is calculated using (W−F+2P)/S+1 = (28-5+2*0)/1+1= 24
+        # and then the output of maxpool is 24/2 = 12.
+        # The output of second conv2d is (12-5+2*0)/1+1=8, then the output of maxpool is 8/2 = 4 .
+        # The same happens for the height so the outcome of second ConvLayer is W*H*output_channel = 4*4*64
         DenseLayer(4 * 4 * 64, 256, tf.nn.relu),
         DenseLayer(256, 10)
     ])  # COMPLETE

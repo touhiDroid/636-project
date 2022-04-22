@@ -3,10 +3,10 @@ import glob
 from math import sqrt
 
 if __name__ == '__main__':
-    allDataFiles = glob.glob('data/*')
+    allDataFiles = glob.glob('../../data/*')
     allDataFiles.sort()
     totalFiles = len(allDataFiles)
-    with open('csi.csv', 'w') as csvOutFile:
+    with open('../../data/csi.csv', 'w') as csvOutFile:
         fc = 1
         for f in allDataFiles:
             escatVals = f.split(".")[0].split("_")

@@ -3,7 +3,7 @@ import json
 if __name__ == '__main__':
     # Load the annotated time-ranges
     annotatedTimeRanges = []
-    with open('data/annotations.csv', 'r') as annotatedCsvFile:
+    with open('../../data/annotations.csv', 'r') as annotatedCsvFile:
         for csvItem in annotatedCsvFile:
             splits = csvItem.split(",")
             startTime = float(splits[0])  # start-time-stamp
@@ -13,10 +13,10 @@ if __name__ == '__main__':
             annotatedTimeRanges.append([startTime, endTime, itemClass])
     annotatedCsvFile.close()
 
-    csiOutFile = open('csi.csv', 'w')
+    csiOutFile = open('../../data/csi.csv', 'w')
     dataCount = 0
     # 18,58,022 CSI data in '260-4.csi.json' file (2.28 GB)
-    with open('data/128a-54.csi.json', 'r') as csiJsonFile:
+    with open('../../data/128a-54.csi.json', 'r') as csiJsonFile:
         for csiJson in csiJsonFile:
             dataCount += 1
             joData = json.loads(csiJson)

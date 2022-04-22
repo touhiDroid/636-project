@@ -1,6 +1,7 @@
 data/128a-54.csi.json filter=lfs diff=lfs merge=lfs -text
 data/128a-54.csi.json.gz filter=lfs diff=lfs merge=lfs -text
 data/annotations.csv filter=lfs diff=lfs merge=lfs -text
+data/csi.csv filter=lfs diff=lfs merge=lfs -text
 data/E1_S01_C02_A04_T12.csv filter=lfs diff=lfs merge=lfs -text
 data/E1_S03_C01_A02_T19.csv filter=lfs diff=lfs merge=lfs -text
 data/E3_S23_C04_A04_T06.csv filter=lfs diff=lfs merge=lfs -text
@@ -2701,4 +2702,3 @@ data/E1_S01_C04_A11_T20.csv filter=lfs diff=lfs merge=lfs -text
 data/E1_S03_C02_A03_T20.csv filter=lfs diff=lfs merge=lfs -text
 data/E3_S22_C03_A07_T20.csv filter=lfs diff=lfs merge=lfs -text
 data/E3_S23_C04_A04_T09.csv filter=lfs diff=lfs merge=lfs -text
-csi.csv filter=lfs diff=lfs merge=lfs -text
