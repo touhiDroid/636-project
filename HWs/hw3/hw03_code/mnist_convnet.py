@@ -205,7 +205,7 @@ if __name__ == '__main__':
     for step in range(num_steps):
         # Get next batch of 100 images
         batch_X, batch_y = mnist.train.next_batch(batch_size)
-        # The images returned by the function are formated in a matrix,
+        # The images returned by the function are formatted in a matrix,
         # where each row represents an image. Hence, we must reshape such
         # matrix to convert the vector-representation of the images to
         # standard 28 by 28 grey images.
