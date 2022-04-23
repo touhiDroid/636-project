@@ -46,7 +46,7 @@ def accuracy(predictions, labels):
 
 
 def parse_csi_data():
-    st = time.time()
+    start_time_csi_parsing = time.time()
     imgNo = 0
     path = "/Volumes/GoogleDrive-104939466644200677683/My Drive/Courses/636_NN/636-project/class-project/PyNN636/data/csi.csv"
     with open(path, 'r') as csiFile:
@@ -80,9 +80,9 @@ def parse_csi_data():
                 print(f"Parsed Image #{imgNo} ... Probable Completion: {percentage}%")
                 # csi.append([])
                 # labels.append([])
-        print(f"Parsing Time Needed: {datetime.timedelta(seconds=time.time() - st)}\n")
+        print(f"Parsing Time Needed: {datetime.timedelta(seconds=time.time() - start_time_csi_parsing)}\n")
         # del csi[0][0]  # deleting empty list at [0][0], which was created during init. of csi=[[[]]] {better way?}
-        return csi, labels, imgNo  # np.array(csi, dtype=object), np.array(labels, dtype=object), imgNo
+        return csi, labels, imgNo
 
 
 if __name__ == '__main__':
