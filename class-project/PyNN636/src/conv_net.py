@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import os
 import random
 import time
 
@@ -9,11 +10,23 @@ import tensorflow as tf
 from layers import LogisticReg, ConvLayer, ReshapeLayer, DenseLayer
 
 # data/csi.csv contains 33,10,009 = (90 * 90 * 36777.833) lines of CSI data, each with 90 CSI, so ~367 batches for W=100
-batch_size = 100  # play with different values for batch size
-num_steps = 15  # play with different values
+batch_size = 1024  # duration of the action = (WiFiWavesPerImage * batch_size) / Frequency = 90 * 32 / 256 = 11.25 seconds
+num_steps = 25  # varied 15-100 steps
 summary_freq = 5
 n_test_log = 10
 n_outputs = 12
+FILTER_SIZE = 3
+POOL_SIZE = 2
+PADDING = 0
+STRIDE = 1
+FIRST_LAYER_FILTERS = 9  # Conv2D
+FIRST_LAYER_OUT_COUNT = int(((90 - FILTER_SIZE + 2 * PADDING) / STRIDE + 1) / POOL_SIZE)
+SECOND_LAYER_FILTERS = 18  # Conv2D
+SECOND_LAYER_OUT_COUNT = int(((FIRST_LAYER_OUT_COUNT - FILTER_SIZE + 2 * PADDING) / STRIDE + 1) / POOL_SIZE)
+THIRD_LAYER_OUT_MAP = int(SECOND_LAYER_OUT_COUNT * SECOND_LAYER_OUT_COUNT * SECOND_LAYER_FILTERS)  # ReShape-layer
+FOURTH_LAYER_OUT_COUNT = n_outputs * 256  # Fully-Connected Dense-Layer
+FIFTH_LAYER_OUT_COUNT = n_outputs
+DATA_FILE_FULL_PATH = os.getcwd()[:os.getcwd().rfind('PyNN636')] + "PyNN636/data/csi.csv"
 
 
 def loss_fn(logits, labels, weights_for_loss):
@@ -48,8 +61,7 @@ def accuracy(predictions, labels):
 def parse_csi_data():
     start_time_csi_parsing = time.time()
     imgNo = 0
-    path = "/Volumes/GoogleDrive-104939466644200677683/My Drive/Courses/636_NN/636-project/class-project/PyNN636/data/csi.csv"
-    with open(path, 'r') as csiFile:
+    with open(DATA_FILE_FULL_PATH, 'r') as csiFile:
         labels = np.zeros((36655, n_outputs), dtype=float)  # [[]]  # [imgNo] -- [Activity=12]
         csi = np.zeros((36655, 90, 90), dtype=float)  # [imgNo] -- [Line=90] -- [W=90]
         for lines90 in itertools.zip_longest(*[csiFile] * 90):  # reading 90-lines at a time to match 90-sub-carriers
@@ -89,13 +101,14 @@ if __name__ == '__main__':
     start_time = time.time()
     # define model
     model = LogisticReg([
-        ConvLayer(input_maps=1, output_maps=90, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
-        ConvLayer(input_maps=90, output_maps=180, filter_size=(5, 5), pool_size=(2, 2), afunc=tf.nn.relu),
-        # 1st layer output number = [ (W−F+2P)/S+1 ] / 2 = [(90-5+0)/1 + 1]/2 = 86/2 = 43
-        # 2nd layer output number = [ (W−F+2P)/S+1 ] / 2 = [(43-5+0)/1 + 1]/2 = 39/2 = 19.5
-        ReshapeLayer(output_shape=[-1, 19 * 19 * 180]),  # Ensure x=19 in (x * x * 180)
-        DenseLayer(19 * 19 * 180, 12 * 1024, tf.nn.relu),
-        DenseLayer(12 * 1024, 12)
+        ConvLayer(input_maps=1, output_maps=FIRST_LAYER_FILTERS, filter_size=(FILTER_SIZE, FILTER_SIZE),
+                  pool_size=(POOL_SIZE, POOL_SIZE), afunc=tf.nn.relu),
+        ConvLayer(input_maps=FIRST_LAYER_FILTERS, output_maps=SECOND_LAYER_FILTERS,
+                  filter_size=(FILTER_SIZE, FILTER_SIZE),
+                  pool_size=(POOL_SIZE, POOL_SIZE), afunc=tf.nn.relu),
+        ReshapeLayer(output_shape=[-1, THIRD_LAYER_OUT_MAP]),
+        DenseLayer(THIRD_LAYER_OUT_MAP, FOURTH_LAYER_OUT_COUNT, tf.nn.relu),
+        DenseLayer(FOURTH_LAYER_OUT_COUNT, FIFTH_LAYER_OUT_COUNT)
     ])
     weights = [layer.w for layer in model.layers if hasattr(layer, 'w')]
 
@@ -109,9 +122,10 @@ if __name__ == '__main__':
 
     mean_loss = 0
     train_accuracy = 0
-    for step in range(num_steps):
-        c = 0
+    for step in range(1, num_steps + 1):
+        c = 0  # random.randint(0, len(_X) - batch_size)
         st = time.time()
+
         while c < total_images:
             batch_X = _X[c: c + batch_size]
             batch_y = _y[c: c + batch_size]
@@ -122,9 +136,12 @@ if __name__ == '__main__':
             # Call the optimizer to perform one step of the training
             l, train_pred = train_step(batch_y, batch_X)
             # Compute accuracy
-            train_accuracy += accuracy(train_pred, batch_y)  # Define proper(?) accuracy function
+            acc = accuracy(train_pred, batch_y)
+            train_accuracy += acc
             mean_loss += l
-            print("{:.2f}".format(100 * c / total_images), '% progress ==> Train Accuracy=', train_accuracy,
+            print(c, '/', total_images, '\t(', "{:.2f}".format(100 * c / total_images),
+                  '%) progress ==> Train Accuracy=', "{:.2f}".format(100 * train_accuracy / c),
+                  '\tCurr. Acc.=', "{:.2f}".format(100 * acc / batch_size),
                   ',\tMean Loss=', mean_loss)
 
         print('Training Time ==> ', datetime.timedelta(seconds=time.time() - st))
@@ -132,25 +149,27 @@ if __name__ == '__main__':
         test_accuracy = 0
         if step % summary_freq == 0:
             # obtain train accuracy
-            train_accuracy = train_accuracy / summary_freq
+            train_accuracy = train_accuracy / (summary_freq * total_images)
 
             # Evaluate the test accuracy on a series of mini-batches
             # extracted from the testing dataset.
             # Use mini-batches of around ~100 images
             test_accuracy = 0
-            test_size = int(0.01 * total_images)
+            test_size = 100  # int(0.01 * total_images)
             for i in range(n_test_log):
-                batch_X_test = random.choices(_X, k=test_size)
-                batch_y_test = random.choices(_y, k=test_size)
+                p = random.randint(0, len(_X) - test_size)
+                batch_X_test = _X[p:p + test_size]
+                batch_y_test = _y[p:p + test_size]
                 batch_X_test = np.reshape(batch_X_test, [-1, 90, 90, 1])
                 pred = model(batch_X_test)
                 test_accuracy += accuracy(pred, batch_y_test)
                 # TODO: Save predicted & original labels to generate confusion-matrix later
             test_accuracy = test_accuracy / n_test_log
             # ------------------------------- #
-            print(step + 1, '# train:', train_accuracy, ' | test:', test_accuracy, ' | loss:', mean_loss / summary_freq)
+            print(step, '# train:', train_accuracy, ' | test:', test_accuracy, ' | loss:', mean_loss / summary_freq)
             mean_loss = 0
             train_accuracy = 0
-        print(step + 1, '# train:', train_accuracy, ' | test:', test_accuracy, ' | loss:', mean_loss / summary_freq)
-        print(step + 1, '# Complete Iteration Time ==> ', datetime.timedelta(seconds=time.time() - st))
+        if test_accuracy > 0:
+            print(step, '# train:', train_accuracy, ' | test:', test_accuracy, ' | loss:', mean_loss / summary_freq)
+        print(step, '# Complete Iteration Time ==> ', datetime.timedelta(seconds=time.time() - st))
     print('Program Runtime ==> ', datetime.timedelta(seconds=time.time() - start_time))
